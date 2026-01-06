@@ -17,27 +17,227 @@ interface CalculateRoutesParams {
   batteryLevel?: number;
 }
 
-// Generate mock route waypoints between two points
-const generateWaypoints = (start: Coordinates, end: Coordinates, numPoints: number = 10): Coordinates[] => {
-  const waypoints: Coordinates[] = [];
-  
-  for (let i = 0; i <= numPoints; i++) {
-    const t = i / numPoints;
-    // Add some random variation to make the route look more natural
-    const variation = Math.sin(t * Math.PI) * 0.005 * (Math.random() - 0.5);
-    
-    waypoints.push({
-      lat: start.lat + (end.lat - start.lat) * t + variation,
-      lng: start.lng + (end.lng - start.lng) * t + variation * 1.5,
-    });
+// OSRM API response types
+interface OSRMRoute {
+  distance: number; // meters
+  duration: number; // seconds
+  geometry: {
+    coordinates: [number, number][]; // [lng, lat] pairs
+  };
+  legs: {
+    steps: {
+      distance: number;
+      duration: number;
+      name: string;
+      maneuver: {
+        type: string;
+        modifier?: string;
+        location: [number, number];
+      };
+    }[];
+  }[];
+}
+
+interface OSRMResponse {
+  code: string;
+  routes: OSRMRoute[];
+}
+
+// Fetch route from OSRM API
+const fetchOSRMRoute = async (
+  start: Coordinates,
+  end: Coordinates,
+  profile: 'bike' | 'foot' | 'driving' = 'bike'
+): Promise<OSRMRoute | null> => {
+  try {
+    // OSRM public demo server (for production, use your own server)
+    // Profile: bike is best for electric scooters
+    const url = `https://router.project-osrm.org/route/v1/${profile}/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=true`;
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('OSRM request failed');
+
+    const data: OSRMResponse = await response.json();
+
+    if (data.code !== 'Ok' || !data.routes.length) {
+      throw new Error('No route found');
+    }
+
+    return data.routes[0];
+  } catch (error) {
+    console.error('OSRM error:', error);
+    return null;
   }
-  
-  return waypoints;
 };
 
-// Calculate distance between two coordinates (Haversine formula)
-const calculateDistance = (start: Coordinates, end: Coordinates): number => {
-  const R = 6371; // Earth's radius in km
+// Convert OSRM coordinates to our format
+const convertCoordinates = (osrmCoords: [number, number][]): Coordinates[] => {
+  return osrmCoords.map(([lng, lat]) => ({ lat, lng }));
+};
+
+// Generate route variations for different types
+const generateRouteVariation = (
+  baseRoute: OSRMRoute,
+  type: RouteType,
+  start: Location,
+  end: Location,
+  weather?: Weather | null
+): Route => {
+  // Type factors for different route preferences
+  const typeFactors: Record<RouteType, { 
+    distanceMultiplier: number; 
+    timeMultiplier: number; 
+    batteryMultiplier: number;
+    elevationFactor: number;
+  }> = {
+    fastest: { distanceMultiplier: 1.0, timeMultiplier: 1.0, batteryMultiplier: 1.15, elevationFactor: 1.2 },
+    efficient: { distanceMultiplier: 1.05, timeMultiplier: 1.1, batteryMultiplier: 1.0, elevationFactor: 0.8 },
+    safest: { distanceMultiplier: 1.1, timeMultiplier: 1.2, batteryMultiplier: 1.05, elevationFactor: 0.6 },
+  };
+
+  const factors = typeFactors[type];
+
+  // Base distance in km
+  const baseDistance = (baseRoute.distance / 1000) * factors.distanceMultiplier;
+  
+  // Duration in minutes
+  const baseDuration = (baseRoute.duration / 60) * factors.timeMultiplier;
+
+  // Battery usage calculation (scooter ~45km max range)
+  let batteryUsage = (baseDistance / 45) * 100 * factors.batteryMultiplier;
+
+  // Apply weather impact
+  if (weather) {
+    const weatherMultiplier = WEATHER_IMPACT[weather.condition] || 1;
+    batteryUsage = batteryUsage / weatherMultiplier;
+  }
+
+  // Generate warnings
+  const warnings: RouteWarning[] = [];
+
+  if (weather?.condition === 'rainy' || weather?.condition === 'stormy') {
+    warnings.push({
+      type: 'rain',
+      message: weather.condition === 'stormy' 
+        ? '⚠️ Tempestade prevista! Autonomia reduzida em ~25%.' 
+        : '🌧️ Chuva prevista. Autonomia pode ser reduzida em ~15%.',
+      severity: weather.condition === 'stormy' ? 'danger' : 'warning',
+    });
+  }
+
+  if (batteryUsage > 80) {
+    warnings.push({
+      type: 'low_battery',
+      message: '🔋 Esta rota consumirá mais de 80% da bateria.',
+      severity: 'warning',
+    });
+  }
+
+  if (baseDistance > 30) {
+    warnings.push({
+      type: 'low_battery',
+      message: '📍 Rota longa! Considere parar num posto de carregamento.',
+      severity: 'info',
+    });
+  }
+
+  // Estimate elevation (would need elevation API for real data)
+  const elevationGain = Math.round((baseDistance * 15) * factors.elevationFactor);
+  const elevationLoss = Math.round((baseDistance * 12) * factors.elevationFactor);
+
+  // Convert waypoints - simplify for performance if too many points
+  let waypoints = convertCoordinates(baseRoute.geometry.coordinates);
+  
+  // Reduce waypoints if too many (keep ~100 max for smooth rendering)
+  if (waypoints.length > 100) {
+    const step = Math.ceil(waypoints.length / 100);
+    waypoints = waypoints.filter((_, i) => i % step === 0 || i === waypoints.length - 1);
+  }
+
+  // For non-fastest routes, add slight variation to waypoints
+  if (type !== 'fastest' && waypoints.length > 2) {
+    waypoints = waypoints.map((point, i) => {
+      if (i === 0 || i === waypoints.length - 1) return point;
+      
+      // Add small random offset to simulate alternative route
+      const offset = type === 'efficient' ? 0.0005 : 0.001;
+      return {
+        lat: point.lat + (Math.random() - 0.5) * offset,
+        lng: point.lng + (Math.random() - 0.5) * offset,
+      };
+    });
+  }
+
+  return {
+    id: generateId(),
+    type,
+    start,
+    end,
+    waypoints,
+    metrics: {
+      distance: Math.round(baseDistance * 10) / 10,
+      duration: Math.round(baseDuration),
+      batteryUsage: Math.round(batteryUsage * 10) / 10,
+      elevationGain,
+      elevationLoss,
+    },
+    isRecommended: type === 'efficient',
+    warnings,
+  };
+};
+
+// Fallback mock route generation when API fails
+const generateFallbackRoute = (
+  type: RouteType,
+  start: Location,
+  end: Location,
+  weather?: Weather | null
+): Route => {
+  const distance = calculateHaversineDistance(start.coordinates, end.coordinates);
+  const roadFactor = 1.3 + Math.random() * 0.2;
+  const adjustedDistance = Math.max(distance * roadFactor, 0.5);
+
+  const typeFactors = {
+    fastest: { distance: 1.0, time: 1.0, battery: 1.15 },
+    efficient: { distance: 1.1, time: 1.15, battery: 1.0 },
+    safest: { distance: 1.2, time: 1.25, battery: 1.05 },
+  };
+
+  const factors = typeFactors[type];
+  const finalDistance = adjustedDistance * factors.distance;
+  const avgSpeed = type === 'fastest' ? 22 : type === 'efficient' ? 18 : 16;
+  const duration = (finalDistance / avgSpeed) * 60;
+  let batteryUsage = (finalDistance / 45) * 100 * factors.battery;
+
+  if (weather) {
+    const weatherMultiplier = WEATHER_IMPACT[weather.condition] || 1;
+    batteryUsage = batteryUsage / weatherMultiplier;
+  }
+
+  // Generate straight-line waypoints with some variation
+  const waypoints = generateWaypoints(start.coordinates, end.coordinates, 20);
+
+  return {
+    id: generateId(),
+    type,
+    start,
+    end,
+    waypoints,
+    metrics: {
+      distance: Math.round(finalDistance * 10) / 10,
+      duration: Math.round(duration),
+      batteryUsage: Math.round(batteryUsage * 10) / 10,
+      elevationGain: Math.round(50 + Math.random() * 100),
+      elevationLoss: Math.round(40 + Math.random() * 80),
+    },
+    isRecommended: type === 'efficient',
+    warnings: [],
+  };
+};
+
+// Haversine distance calculation
+const calculateHaversineDistance = (start: Coordinates, end: Coordinates): number => {
+  const R = 6371;
   const dLat = ((end.lat - start.lat) * Math.PI) / 180;
   const dLng = ((end.lng - start.lng) * Math.PI) / 180;
   const a =
@@ -50,76 +250,21 @@ const calculateDistance = (start: Coordinates, end: Coordinates): number => {
   return R * c;
 };
 
-// Generate mock route based on type
-const generateMockRoute = (
-  type: RouteType,
-  start: Location,
-  end: Location,
-  baseDistance: number,
-  weather?: Weather | null
-): Route => {
-  // Different multipliers for each route type
-  const typeFactors: Record<RouteType, { distance: number; time: number; battery: number; elevation: number }> = {
-    fastest: { distance: 1.0, time: 1.0, battery: 1.15, elevation: 1.2 },
-    efficient: { distance: 1.1, time: 1.15, battery: 1.0, elevation: 0.8 },
-    safest: { distance: 1.2, time: 1.25, battery: 1.05, elevation: 0.6 },
-  };
-
-  const factors = typeFactors[type];
-  const distance = baseDistance * factors.distance;
+// Generate fallback waypoints
+const generateWaypoints = (start: Coordinates, end: Coordinates, numPoints: number = 10): Coordinates[] => {
+  const waypoints: Coordinates[] = [];
   
-  // Calculate duration based on average speed (20 km/h for scooter)
-  const averageSpeed = type === 'fastest' ? 22 : type === 'efficient' ? 18 : 16;
-  const duration = (distance / averageSpeed) * 60; // in minutes
-  
-  // Battery usage calculation
-  const baseBatteryUsage = (distance / 45) * 100; // 45km max range
-  let batteryUsage = baseBatteryUsage * factors.battery;
-  
-  // Apply weather impact
-  if (weather) {
-    const weatherMultiplier = WEATHER_IMPACT[weather.condition] || 1;
-    batteryUsage = batteryUsage / weatherMultiplier;
-  }
-  
-  // Generate warnings
-  const warnings: RouteWarning[] = [];
-  
-  if (weather?.condition === 'rainy' || weather?.condition === 'stormy') {
-    warnings.push({
-      type: 'rain',
-      message: 'Chuva prevista no percurso. Autonomia pode ser reduzida em 15%.',
-      severity: weather.condition === 'stormy' ? 'danger' : 'warning',
+  for (let i = 0; i <= numPoints; i++) {
+    const t = i / numPoints;
+    const variation = Math.sin(t * Math.PI) * 0.003 * (Math.random() - 0.5);
+    
+    waypoints.push({
+      lat: start.lat + (end.lat - start.lat) * t + variation,
+      lng: start.lng + (end.lng - start.lng) * t + variation * 1.5,
     });
   }
   
-  if (batteryUsage > 80) {
-    warnings.push({
-      type: 'low_battery',
-      message: 'Esta rota consumirá mais de 80% da bateria.',
-      severity: 'warning',
-    });
-  }
-  
-  const elevationGain = Math.round(50 + Math.random() * 100 * factors.elevation);
-  const elevationLoss = Math.round(40 + Math.random() * 80 * factors.elevation);
-
-  return {
-    id: generateId(),
-    type,
-    start,
-    end,
-    waypoints: generateWaypoints(start.coordinates, end.coordinates),
-    metrics: {
-      distance: Math.round(distance * 10) / 10,
-      duration: Math.round(duration),
-      batteryUsage: Math.round(batteryUsage * 10) / 10,
-      elevationGain,
-      elevationLoss,
-    },
-    isRecommended: type === 'efficient',
-    warnings,
-  };
+  return waypoints;
 };
 
 export function useRoutes() {
@@ -138,48 +283,66 @@ export function useRoutes() {
     setState({ routes: [], isCalculating: true, error: null });
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Try to fetch real route from OSRM
+      const osrmRoute = await fetchOSRMRoute(start.coordinates, end.coordinates, 'bike');
 
-      const baseDistance = calculateDistance(start.coordinates, end.coordinates);
-      
-      // Add realistic minimum distance (accounting for roads)
-      const roadFactor = 1.3 + Math.random() * 0.2;
-      const adjustedDistance = Math.max(baseDistance * roadFactor, 0.5);
+      let routes: Route[];
 
-      const routes: Route[] = [
-        generateMockRoute('fastest', start, end, adjustedDistance, weather),
-        generateMockRoute('efficient', start, end, adjustedDistance, weather),
-        generateMockRoute('safest', start, end, adjustedDistance, weather),
-      ];
+      if (osrmRoute) {
+        // Generate route variations based on real OSRM data
+        routes = [
+          generateRouteVariation(osrmRoute, 'fastest', start, end, weather),
+          generateRouteVariation(osrmRoute, 'efficient', start, end, weather),
+          generateRouteVariation(osrmRoute, 'safest', start, end, weather),
+        ];
+      } else {
+        // Fallback to mock routes if API fails
+        console.warn('OSRM API failed, using fallback routes');
+        routes = [
+          generateFallbackRoute('fastest', start, end, weather),
+          generateFallbackRoute('efficient', start, end, weather),
+          generateFallbackRoute('safest', start, end, weather),
+        ];
+      }
 
-      // Check if any route exceeds battery
+      // Add battery warnings
       routes.forEach((route) => {
-        if (route.metrics.batteryUsage > batteryLevel && 
-            !route.warnings?.some(w => w.type === 'low_battery')) {
-          route.warnings = route.warnings || [];
-          route.warnings.push({
-            type: 'low_battery',
-            message: 'Bateria insuficiente para completar esta rota.',
-            severity: 'danger',
-          });
+        if (route.metrics.batteryUsage > batteryLevel) {
+          if (!route.warnings?.some(w => w.type === 'low_battery')) {
+            route.warnings = route.warnings || [];
+            route.warnings.push({
+              type: 'low_battery',
+              message: '⚠️ Bateria insuficiente para completar esta rota. Carregue antes de partir.',
+              severity: 'danger',
+            });
+          }
         }
       });
 
-      setState({ routes, isCalculating: false, error: null });
+      setState({
+        routes,
+        isCalculating: false,
+        error: null,
+      });
+
       return routes;
-    } catch {
+    } catch (error) {
+      const errorMessage = 'Erro ao calcular rotas. Tente novamente.';
       setState({
         routes: [],
         isCalculating: false,
-        error: 'Erro ao calcular rotas. Tente novamente.',
+        error: errorMessage,
       });
-      return [];
+      throw new Error(errorMessage);
     }
   }, []);
 
   const clearRoutes = useCallback(() => {
-    setState({ routes: [], isCalculating: false, error: null });
+    setState({
+      routes: [],
+      isCalculating: false,
+      error: null,
+    });
   }, []);
 
   return {

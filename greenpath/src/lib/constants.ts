@@ -12,14 +12,45 @@ export const DEFAULT_VEHICLE = {
   maxSpeed: 25, // km/h
 };
 
-// Map configuration
+// Map configuration - UPDATED for Norte de Portugal
 export const MAP_CONFIG = {
-  defaultCenter: [41.2925, -7.7467] as [number, number], // Vila Real, Portugal
-  defaultZoom: 14,
-  minZoom: 10,
+  // Center of Northern Portugal (between Porto and Vila Real)
+  defaultCenter: [41.35, -8.0] as [number, number],
+  defaultZoom: 10, // Reduced zoom to show more area
+  minZoom: 8,
   maxZoom: 18,
   tileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  
+  // Northern Portugal bounds for constraining the map
+  bounds: {
+    north: 42.2,  // Top of Minho
+    south: 40.8,  // Around Aveiro/Viseu
+    west: -8.9,   // Atlantic coast
+    east: -6.2,   // Spanish border
+  },
+  
+  // Key cities in Norte de Portugal with coordinates
+  cities: {
+    porto: { lat: 41.1579, lng: -8.6291, name: 'Porto' },
+    braga: { lat: 41.5510, lng: -8.4265, name: 'Braga' },
+    guimaraes: { lat: 41.4424, lng: -8.2918, name: 'Guimarães' },
+    vilaReal: { lat: 41.2925, lng: -7.7467, name: 'Vila Real' },
+    vianaDoCastelo: { lat: 41.6939, lng: -8.8342, name: 'Viana do Castelo' },
+    braganca: { lat: 41.8057, lng: -6.7589, name: 'Bragança' },
+    chaves: { lat: 41.7400, lng: -7.4714, name: 'Chaves' },
+    lamego: { lat: 41.0959, lng: -7.8108, name: 'Lamego' },
+    regua: { lat: 41.1621, lng: -7.7850, name: 'Peso da Régua' },
+    amarante: { lat: 41.2705, lng: -8.0830, name: 'Amarante' },
+    barcelos: { lat: 41.5346, lng: -8.6176, name: 'Barcelos' },
+    famalicao: { lat: 41.4089, lng: -8.5189, name: 'Famalicão' },
+    povoa: { lat: 41.3823, lng: -8.7627, name: 'Póvoa de Varzim' },
+    penafiel: { lat: 41.2055, lng: -8.2843, name: 'Penafiel' },
+    felgueiras: { lat: 41.3669, lng: -8.1971, name: 'Felgueiras' },
+    santoTirso: { lat: 41.3433, lng: -8.4779, name: 'Santo Tirso' },
+    matosinhos: { lat: 41.1819, lng: -8.6919, name: 'Matosinhos' },
+    gaia: { lat: 41.1246, lng: -8.6151, name: 'Vila Nova de Gaia' },
+  },
 };
 
 // Route types
@@ -91,7 +122,7 @@ export const ANIMATION = {
 };
 
 // Weather impact on autonomy (multipliers)
-export const WEATHER_IMPACT = {
+export const WEATHER_IMPACT: Record<string, number> = {
   sunny: 1.0,
   cloudy: 0.98,
   rainy: 0.85,
@@ -103,4 +134,27 @@ export const TERRAIN_IMPACT = {
   uphill: 0.92,
   flat: 1.0,
   downhill: 1.08,
+};
+
+// API Endpoints (for future use with your own backend)
+export const API_ENDPOINTS = {
+  // Geocoding - Nominatim (OpenStreetMap)
+  NOMINATIM_SEARCH: 'https://nominatim.openstreetmap.org/search',
+  NOMINATIM_REVERSE: 'https://nominatim.openstreetmap.org/reverse',
+  
+  // Routing - OSRM
+  OSRM_ROUTE: 'https://router.project-osrm.org/route/v1',
+  
+  // Charging Stations - Open Charge Map
+  OPEN_CHARGE_MAP: 'https://api.openchargemap.io/v3/poi',
+  
+  // Weather (example - would need API key)
+  // OPENWEATHER: 'https://api.openweathermap.org/data/2.5/weather',
+};
+
+// API rate limiting
+export const API_RATE_LIMITS = {
+  NOMINATIM_DELAY_MS: 1000, // Nominatim requires 1 request per second max
+  OCM_MAX_RESULTS: 100,
+  OSRM_MAX_WAYPOINTS: 100,
 };

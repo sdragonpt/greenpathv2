@@ -1,27 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Navigation, Loader2, RotateCcw, ArrowUpDown } from 'lucide-react';
-import { TopBar } from '@/components/navigation/TopBar';
-import { BottomNav } from '@/components/navigation/BottomNav';
-import { Button } from '@/components/ui/button';
-import { LocationInput } from '@/components/shared/LocationInput';
-import { RouteOptionCard } from '@/components/cards/RouteOptionCard';
-import { WeatherAlertBanner } from '@/components/shared/WeatherAlert';
-import { useAppState } from '@/store/AppStateContext';
-import { useRoutes } from '@/hooks/useRoutes';
-import { useWeather } from '@/hooks/useWeather';
-import { Location, Route } from '@/types/route';
-import { ROUTES } from '@/lib/constants';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ArrowLeft,
+  Navigation,
+  Loader2,
+  RotateCcw,
+  ArrowUpDown,
+} from "lucide-react";
+import { TopBar } from "@/components/navigation/TopBar";
+import { BottomNav } from "@/components/navigation/BottomNav";
+import { Button } from "@/components/ui/button";
+import { LocationInput } from "@/components/shared/LocationInput";
+import { RouteOptionCard } from "@/components/cards/RouteOptionCard";
+import { WeatherAlertBanner } from "@/components/shared/WeatherAlert";
+import { useAppState } from "@/store/AppStateContext";
+import { useRoutes } from "@/hooks/useRoutes";
+import { useWeather } from "@/hooks/useWeather";
+import { Location, Route } from "@/types/route";
+import { ROUTES } from "@/lib/constants";
 
 export function RoutePlanningScreen() {
   const navigate = useNavigate();
-  const { battery, currentLocation, weather, setSelectedRoute: setGlobalSelectedRoute } = useAppState();
+  const {
+    battery,
+    currentLocation,
+    weather,
+    setSelectedRoute: setGlobalSelectedRoute,
+  } = useAppState();
   const { calculateRoutes, routes, isCalculating, error } = useRoutes();
   const { alerts } = useWeather();
 
   const [startLocation, setStartLocation] = useState<Location | null>(
-    currentLocation ? { coordinates: currentLocation, address: 'Localização atual' } : null
+    currentLocation
+      ? { coordinates: currentLocation, address: "Localização atual" }
+      : null
   );
   const [endLocation, setEndLocation] = useState<Location | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
@@ -30,7 +43,10 @@ export function RoutePlanningScreen() {
   // Update start location when current location changes
   useEffect(() => {
     if (currentLocation && !startLocation) {
-      setStartLocation({ coordinates: currentLocation, address: 'Localização atual' });
+      setStartLocation({
+        coordinates: currentLocation,
+        address: "Localização atual",
+      });
     }
   }, [currentLocation]);
 
@@ -81,7 +97,7 @@ export function RoutePlanningScreen() {
 
   // Filter alerts relevant to routing
   const routeAlerts = alerts?.filter(
-    (a) => a.type === 'rain' || a.type === 'storm' || a.type === 'wind'
+    (a) => a.type === "rain" || a.type === "storm" || a.type === "wind"
   );
 
   return (
@@ -119,7 +135,7 @@ export function RoutePlanningScreen() {
           <button
             onClick={handleSwapLocations}
             className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-background border border-border rounded-full flex items-center justify-center shadow-sm hover:bg-muted transition-colors"
-            style={{ marginTop: '12px' }}
+            style={{ marginTop: "12px" }}
           >
             <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
           </button>
@@ -139,11 +155,7 @@ export function RoutePlanningScreen() {
         {/* Calculate Button */}
         <div className="flex gap-2 mt-4">
           {hasCalculated && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleReset}
-            >
+            <Button variant="outline" size="icon" onClick={handleReset}>
               <RotateCcw className="h-4 w-4" />
             </Button>
           )}
@@ -154,13 +166,12 @@ export function RoutePlanningScreen() {
           >
             {isCalculating ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                A calcular...
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />A calcular...
               </>
             ) : (
               <>
                 <Navigation className="h-4 w-4 mr-2" />
-                {hasCalculated ? 'Recalcular' : 'Calcular Rotas'}
+                {hasCalculated ? "Recalcular" : "Calcular Rotas"}
               </>
             )}
           </Button>
@@ -174,7 +185,7 @@ export function RoutePlanningScreen() {
           {routeAlerts && routeAlerts.length > 0 && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
+              animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               className="mb-4"
             >
@@ -206,8 +217,8 @@ export function RoutePlanningScreen() {
             </div>
             <h3 className="font-semibold text-lg mb-2">Planear Viagem</h3>
             <p className="text-muted-foreground text-sm max-w-xs">
-              Introduza o seu destino para calcular as melhores rotas
-              otimizadas para a sua trotinete elétrica.
+              Introduza o seu destino para calcular as melhores rotas otimizadas
+              para a sua mota elétrica.
             </p>
           </motion.div>
         )}
@@ -244,16 +255,18 @@ export function RoutePlanningScreen() {
               ))}
 
               {/* Battery Warning */}
-              {selectedRoute && selectedRoute.metrics.batteryUsage > battery.percentage && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 p-4 rounded-xl text-sm"
-                >
-                  ⚠️ Esta rota pode exceder a autonomia atual da sua bateria.
-                  Considere carregar antes de partir ou escolher uma rota mais curta.
-                </motion.div>
-              )}
+              {selectedRoute &&
+                selectedRoute.metrics.batteryUsage > battery.percentage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 p-4 rounded-xl text-sm"
+                  >
+                    ⚠️ Esta rota pode exceder a autonomia atual da sua bateria.
+                    Considere carregar antes de partir ou escolher uma rota mais
+                    curta.
+                  </motion.div>
+                )}
             </motion.div>
           )}
         </AnimatePresence>

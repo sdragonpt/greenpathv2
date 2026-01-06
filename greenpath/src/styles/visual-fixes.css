@@ -1,0 +1,338 @@
+/* ========================================
+   GreenPath - Correções de Bugs Visuais
+   ======================================== */
+
+/* 
+ * Adicionar estas correções ao ficheiro:
+ * src/styles/globals.css
+ * ou criar um novo ficheiro e importar
+ */
+
+/* ----------------------------------------
+   1. FIX: Dropdown de pesquisa atrás de outros elementos
+   ---------------------------------------- */
+.location-search-dropdown {
+  z-index: 9999 !important;
+}
+
+/* ----------------------------------------
+   2. FIX: Bottom navigation sobrepõe conteúdo
+   ---------------------------------------- */
+.main-content-with-bottom-nav {
+  padding-bottom: 5rem; /* 80px para a bottom nav */
+  min-height: calc(100vh - 5rem);
+}
+
+/* Alternativa com safe area para iOS */
+.main-content-safe {
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* ----------------------------------------
+   3. FIX: Mapa Leaflet não ocupa espaço correto
+   ---------------------------------------- */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 1;
+}
+
+/* Container do mapa deve ter altura definida */
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 300px; /* ou altura desejada */
+  min-height: 200px;
+}
+
+/* Para mapa fullscreen */
+.map-fullscreen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ----------------------------------------
+   4. FIX: Marcadores/ícones do Leaflet não aparecem
+   ---------------------------------------- */
+/* Forçar visibilidade dos marcadores */
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Custom marker styling */
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* ----------------------------------------
+   5. FIX: Popup do mapa cortado nas bordas
+   ---------------------------------------- */
+.leaflet-popup {
+  z-index: 1000 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  max-width: 280px;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* ----------------------------------------
+   6. FIX: Cards de rota com overflow
+   ---------------------------------------- */
+.route-option-card {
+  overflow: hidden;
+  word-wrap: break-word;
+}
+
+.route-option-card .route-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ----------------------------------------
+   7. FIX: Loading spinner não centrado
+   ---------------------------------------- */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 9999;
+}
+
+.dark .loading-overlay {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* ----------------------------------------
+   8. FIX: Input de pesquisa com texto cortado
+   ---------------------------------------- */
+.location-input input {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-right: 4rem; /* Espaço para botões */
+}
+
+/* ----------------------------------------
+   9. FIX: Lista de postos de carregamento scroll
+   ---------------------------------------- */
+.charging-stations-list {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbar but keep functionality */
+.charging-stations-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.charging-stations-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+/* ----------------------------------------
+   10. FIX: Animação da rota no mapa
+   ---------------------------------------- */
+.route-animated {
+  animation: dash 20s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+/* ----------------------------------------
+   11. FIX: Status badges com cores corretas
+   ---------------------------------------- */
+.status-badge-available {
+  background-color: #22c55e !important;
+  color: white !important;
+}
+
+.status-badge-limited {
+  background-color: #eab308 !important;
+  color: black !important;
+}
+
+.status-badge-occupied {
+  background-color: #ef4444 !important;
+  color: white !important;
+}
+
+/* ----------------------------------------
+   12. FIX: Botão "Iniciar Navegação" não clicável
+   ---------------------------------------- */
+.navigation-start-button {
+  position: relative;
+  z-index: 100;
+  pointer-events: auto !important;
+}
+
+/* Container do botão deve estar acima do mapa */
+.navigation-button-container {
+  position: fixed;
+  bottom: 5rem;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.navigation-button-container > * {
+  pointer-events: auto;
+}
+
+/* ----------------------------------------
+   13. FIX: Header sobrepõe conteúdo ao fazer scroll
+   ---------------------------------------- */
+.page-with-fixed-header {
+  padding-top: 4rem; /* Altura do header */
+}
+
+.fixed-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--background);
+}
+
+/* ----------------------------------------
+   14. FIX: Dark mode - cores inconsistentes
+   ---------------------------------------- */
+.dark {
+  --card-background: hsl(224, 71%, 4%);
+  --card-border: hsl(215, 27%, 17%);
+}
+
+.dark .card {
+  background-color: var(--card-background);
+  border-color: var(--card-border);
+}
+
+/* ----------------------------------------
+   15. FIX: Touch feedback em mobile
+   ---------------------------------------- */
+@media (hover: none) {
+  .touchable {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .touchable:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+}
+
+/* ----------------------------------------
+   16. FIX: Safe areas para iPhone com notch
+   ---------------------------------------- */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ----------------------------------------
+   17. FIX: Texto truncado em cards pequenos
+   ---------------------------------------- */
+.station-card-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.station-card-address {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ----------------------------------------
+   18. FIX: Mapa controls (zoom) posição
+   ---------------------------------------- */
+.leaflet-control-zoom {
+  margin-top: 80px !important; /* Abaixo do header */
+  margin-right: 10px !important;
+}
+
+.leaflet-control-attribution {
+  font-size: 10px !important;
+}
+
+/* ----------------------------------------
+   19. FIX: Sheet/Modal não fecha ao clicar fora
+   ---------------------------------------- */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+}
+
+.sheet-content {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--background);
+  border-radius: 1rem 1rem 0 0;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* ----------------------------------------
+   20. FIX: Skeleton loading com cores erradas
+   ---------------------------------------- */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

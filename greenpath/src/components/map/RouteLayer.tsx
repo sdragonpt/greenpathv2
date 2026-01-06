@@ -9,17 +9,17 @@ interface RouteLayerProps {
   animated?: boolean;
 }
 
-// Route colors by type
+// Cores das rotas por tipo
 const routeColors: Record<RouteType, { main: string; outline: string }> = {
-  fastest: { main: '#3b82f6', outline: '#1d4ed8' }, // Blue
-  efficient: { main: '#22c55e', outline: '#15803d' }, // Green
-  safest: { main: '#f59e0b', outline: '#d97706' }, // Amber
+  fastest: { main: '#3b82f6', outline: '#1d4ed8' }, // Azul
+  efficient: { main: '#22c55e', outline: '#15803d' }, // Verde
+  safest: { main: '#f59e0b', outline: '#d97706' }, // Amarelo
 };
 
-// Custom marker icons
+// Criar ícones customizados para marcadores
 const createMarkerIcon = (color: string, label: string) => {
   return L.divIcon({
-    className: 'custom-marker',
+    className: 'custom-route-marker',
     html: `
       <div style="
         width: 32px;
@@ -43,6 +43,7 @@ const createMarkerIcon = (color: string, label: string) => {
     `,
     iconSize: [32, 32],
     iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
   });
 };
 
@@ -50,19 +51,33 @@ const startIcon = createMarkerIcon('#22c55e', 'A');
 const endIcon = createMarkerIcon('#ef4444', 'B');
 
 export function RouteLayer({ route, showMarkers = true, animated = false }: RouteLayerProps) {
-  const colors = routeColors[route.type];
-  
-  // Convert route waypoints to Leaflet format
-  const positions: [number, number][] = route.waypoints.map((coord: Coordinates) => [
-    coord.lat,
-    coord.lng,
-  ]);
+  // Verificar se a rota tem waypoints válidos
+  if (!route?.waypoints || route.waypoints.length < 2) {
+    console.warn('RouteLayer: Invalid or empty waypoints');
+    return null;
+  }
 
-  if (positions.length < 2) return null;
+  const colors = routeColors[route.type] || routeColors.efficient;
+  
+  // Converter waypoints para formato Leaflet [lat, lng]
+  const positions: [number, number][] = route.waypoints
+    .filter((coord: Coordinates) => 
+      coord && 
+      typeof coord.lat === 'number' && 
+      typeof coord.lng === 'number' &&
+      !isNaN(coord.lat) && 
+      !isNaN(coord.lng)
+    )
+    .map((coord: Coordinates) => [coord.lat, coord.lng] as [number, number]);
+
+  if (positions.length < 2) {
+    console.warn('RouteLayer: Not enough valid positions after filtering');
+    return null;
+  }
 
   return (
     <>
-      {/* Route outline (wider, darker) */}
+      {/* Linha de contorno (mais grossa, mais escura) */}
       <Polyline
         positions={positions}
         pathOptions={{
@@ -74,7 +89,7 @@ export function RouteLayer({ route, showMarkers = true, animated = false }: Rout
         }}
       />
 
-      {/* Main route line */}
+      {/* Linha principal da rota */}
       <Polyline
         positions={positions}
         pathOptions={{
@@ -88,15 +103,15 @@ export function RouteLayer({ route, showMarkers = true, animated = false }: Rout
         }}
       />
 
-      {/* Start and End markers */}
+      {/* Marcadores de início e fim */}
       {showMarkers && (
         <>
           <Marker position={positions[0]} icon={startIcon}>
             <Popup>
-              <div className="text-sm">
-                <strong>Origem</strong>
-                <p className="text-muted-foreground">
-                  {route.start.name || route.start.address}
+              <div className="text-sm p-1">
+                <strong className="text-green-600">Origem</strong>
+                <p className="text-gray-600 mt-1">
+                  {route.start?.name || route.start?.address || 'Ponto de partida'}
                 </p>
               </div>
             </Popup>
@@ -104,10 +119,10 @@ export function RouteLayer({ route, showMarkers = true, animated = false }: Rout
 
           <Marker position={positions[positions.length - 1]} icon={endIcon}>
             <Popup>
-              <div className="text-sm">
-                <strong>Destino</strong>
-                <p className="text-muted-foreground">
-                  {route.end.name || route.end.address}
+              <div className="text-sm p-1">
+                <strong className="text-red-600">Destino</strong>
+                <p className="text-gray-600 mt-1">
+                  {route.end?.name || route.end?.address || 'Ponto de chegada'}
                 </p>
               </div>
             </Popup>
@@ -118,7 +133,7 @@ export function RouteLayer({ route, showMarkers = true, animated = false }: Rout
   );
 }
 
-// Multiple routes overlay (for comparison)
+// Componente para múltiplas rotas (comparação)
 interface MultiRouteLayerProps {
   routes: Route[];
   selectedRouteId?: string;
@@ -135,10 +150,14 @@ export function MultiRouteLayer({
       {routes.map((route) => {
         const isSelected = route.id === selectedRouteId;
         const colors = routeColors[route.type];
-        const positions: [number, number][] = route.waypoints.map((coord: Coordinates) => [
-          coord.lat,
-          coord.lng,
-        ]);
+        
+        const positions: [number, number][] = route.waypoints
+          .filter((coord: Coordinates) => 
+            coord && typeof coord.lat === 'number' && typeof coord.lng === 'number'
+          )
+          .map((coord: Coordinates) => [coord.lat, coord.lng] as [number, number]);
+
+        if (positions.length < 2) return null;
 
         return (
           <Polyline

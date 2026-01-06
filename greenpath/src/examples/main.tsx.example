@@ -1,0 +1,29 @@
+/**
+ * main.tsx - EXEMPLO ATUALIZADO
+ * 
+ * IMPORTANTE: Os imports do Leaflet DEVEM estar no TOPO,
+ * antes de qualquer outro import!
+ */
+
+// ========================================
+// 1. IMPORTS DO LEAFLET (DEVEM SER PRIMEIRO!)
+// ========================================
+import 'leaflet/dist/leaflet.css';
+import '@/lib/map-setup';
+
+// ========================================
+// 2. IMPORTS DO REACT E APP
+// ========================================
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './styles/globals.css';
+
+// ========================================
+// 3. RENDER
+// ========================================
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
