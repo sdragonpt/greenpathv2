@@ -1,0 +1,319 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");
+
+@import "tailwindcss";
+@config "../../tailwind.config.js";
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-md;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 160 20% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 160 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 160 20% 10%;
+
+    --primary: 152 76% 36%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 150 30% 96%;
+    --secondary-foreground: 160 20% 20%;
+
+    --muted: 150 20% 96%;
+    --muted-foreground: 160 10% 45%;
+
+    --accent: 152 60% 92%;
+    --accent-foreground: 152 76% 28%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 20% 90%;
+    --input: 150 20% 90%;
+    --ring: 152 76% 36%;
+
+    --radius: 0.75rem;
+
+    /* GreenPath specific */
+    --eco-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --battery-gradient: linear-gradient(
+      90deg,
+      #22c55e 0%,
+      #10b981 50%,
+      #059669 100%
+    );
+    --rain-color: rgba(99, 179, 237, 0.3);
+
+    /* Safe areas for mobile */
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
+  }
+
+  .dark {
+    --background: 160 20% 8%;
+    --foreground: 150 20% 96%;
+
+    --card: 160 20% 11%;
+    --card-foreground: 150 20% 96%;
+
+    --popover: 160 20% 11%;
+    --popover-foreground: 150 20% 96%;
+
+    --primary: 152 76% 46%;
+    --primary-foreground: 160 20% 8%;
+
+    --secondary: 160 20% 16%;
+    --secondary-foreground: 150 20% 90%;
+
+    --muted: 160 15% 18%;
+    --muted-foreground: 150 10% 60%;
+
+    --accent: 152 40% 20%;
+    --accent-foreground: 152 76% 60%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 160 15% 20%;
+    --input: 160 15% 20%;
+    --ring: 152 76% 46%;
+
+    --eco-gradient: linear-gradient(135deg, #059669 0%, #047857 100%);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+
+  /* Mobile app-like behavior */
+  html,
+  body,
+  #root {
+    @apply h-full overflow-hidden;
+  }
+
+  #root {
+    @apply flex flex-col;
+  }
+}
+
+@layer components {
+  /* App shell */
+  .app-shell {
+    @apply flex flex-col h-full overflow-hidden;
+    padding-top: var(--safe-area-top);
+    padding-bottom: var(--safe-area-bottom);
+    padding-left: var(--safe-area-left);
+    padding-right: var(--safe-area-right);
+  }
+
+  /* Screen container with transitions */
+  .screen {
+    @apply flex-1 overflow-y-auto overflow-x-hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .screen-content {
+    @apply px-4 py-6;
+  }
+
+  /* Bottom navigation safe area */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 z-50;
+    padding-bottom: var(--safe-area-bottom);
+  }
+
+  /* Eco gradient backgrounds */
+  .eco-gradient {
+    background: var(--eco-gradient);
+  }
+
+  .eco-gradient-text {
+    background: var(--eco-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Battery bar animation */
+  .battery-fill {
+    background: var(--battery-gradient);
+    transition: width 0.5s ease-out;
+  }
+
+  /* Map container */
+  .map-container {
+    @apply w-full h-full;
+  }
+
+  .map-container .leaflet-container {
+    @apply w-full h-full rounded-lg;
+  }
+
+  /* Glass effect for overlays */
+  .glass {
+    @apply bg-white/80 dark:bg-black/60 backdrop-blur-xl;
+  }
+
+  /* Card hover effects */
+  .card-interactive {
+    @apply transition-all duration-200 hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  /* Route option styling */
+  .route-option {
+    @apply relative overflow-hidden rounded-xl border-2 border-transparent transition-all duration-200;
+  }
+
+  .route-option.recommended {
+    @apply border-primary bg-primary/5;
+  }
+
+  .route-option:hover {
+    @apply border-primary/50;
+  }
+
+  /* Charging station status indicators */
+  .status-available {
+    @apply bg-green-500;
+  }
+
+  .status-limited {
+    @apply bg-yellow-500;
+  }
+
+  .status-occupied {
+    @apply bg-red-500;
+  }
+
+  /* Weather overlay on map */
+  .weather-rain-overlay {
+    background: repeating-linear-gradient(
+      transparent,
+      transparent 2px,
+      var(--rain-color) 2px,
+      var(--rain-color) 4px
+    );
+    animation: rain-fall 0.5s linear infinite;
+  }
+
+  @keyframes rain-fall {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: 20px 20px;
+    }
+  }
+
+  /* Quick action buttons */
+  .quick-action {
+    @apply flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-card border border-border transition-all duration-200;
+  }
+
+  .quick-action:hover {
+    @apply bg-accent border-primary/30;
+  }
+
+  .quick-action:active {
+    @apply scale-95;
+  }
+
+  /* Input focus states */
+  .input-focus {
+    @apply focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200;
+  }
+
+  /* Page transitions */
+  .page-enter {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .page-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms ease-out, transform 300ms ease-out;
+  }
+
+  .page-exit {
+    opacity: 1;
+  }
+
+  .page-exit-active {
+    opacity: 0;
+    transition: opacity 200ms ease-in;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Touch-friendly sizing */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Text balance for better readability */
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Leaflet customizations */
+.leaflet-control-zoom {
+  @apply !border-none !rounded-xl overflow-hidden shadow-lg;
+}
+
+.leaflet-control-zoom a {
+  @apply !bg-card !text-foreground !border-border hover:!bg-accent;
+}
+
+.leaflet-popup-content-wrapper {
+  @apply !bg-card !text-foreground !rounded-xl !shadow-xl;
+}
+
+.leaflet-popup-tip {
+  @apply !bg-card;
+}
